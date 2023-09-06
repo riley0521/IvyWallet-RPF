@@ -1,30 +1,11 @@
 package com.ivy.core.domain.action.transaction
 
-import android.graphics.Color
-import arrow.core.firstOrNone
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import com.ivy.core.domain.algorithm.accountcache.InvalidateAccCacheAct
-import com.ivy.data.Sync
-import com.ivy.data.SyncState
 import com.ivy.data.Value
-import com.ivy.data.account.Account
-import com.ivy.data.account.AccountState
-import com.ivy.data.attachment.Attachment
-import com.ivy.data.attachment.AttachmentSource
-import com.ivy.data.attachment.AttachmentType
-import com.ivy.data.category.Category
-import com.ivy.data.category.CategoryState
-import com.ivy.data.category.CategoryType
-import com.ivy.data.tag.Tag
-import com.ivy.data.tag.TagState
-import com.ivy.data.transaction.Transaction
 import com.ivy.data.transaction.TransactionType
-import com.ivy.data.transaction.TrnMetadata
-import com.ivy.data.transaction.TrnPurpose
-import com.ivy.data.transaction.TrnState
-import com.ivy.data.transaction.TrnTime
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -65,91 +46,33 @@ internal class WriteTrnsActTest {
         val tagId = UUID.randomUUID()
         val attachmentId = UUID.randomUUID()
 
-        val newTag = Tag(
-            id = tagId.toString(),
-            color = Color.BLUE,
-            name = "Sample Tag",
-            orderNum = 0.0,
-            state = TagState.Default,
-            sync = Sync(
-                state = SyncState.Synced,
-                lastUpdated = timeProviderFake.timeNow()
-            )
+        val newTag = tag().copy(
+            id = tagId.toString()
         )
 
-        val newAttachment = Attachment(
-            id = attachmentId.toString(),
-            associatedId = "",
-            uri = "",
-            source = AttachmentSource.Local,
-            filename = null,
-            type = AttachmentType.Image,
-            sync = Sync(
-                state = SyncState.Synced,
-                lastUpdated = timeProviderFake.timeNow()
-            )
+        val newAttachment = attachment(transactionId.toString()).copy(
+            id = attachmentId.toString()
         )
 
-        val newTransaction = Transaction(
+        val newAccount = account()
+
+        val newTransaction = transaction(
             id = transactionId,
-            account = Account(
-                id = UUID.randomUUID(),
-                name = "Sample Account",
-                currency = "USD",
-                color = Color.BLUE,
-                icon = "account",
-                excluded = false,
-                folderId = null,
-                orderNum = 0.0,
-                state = AccountState.Default,
-                sync = Sync(
-                    state = SyncState.Synced,
-                    lastUpdated = timeProviderFake.timeNow()
-                )
-            ),
-            type = TransactionType.Income,
-            value = Value(
-                amount = 100.0,
-                currency = "USD"
-            ),
-            category = Category(
-                id = UUID.randomUUID(),
-                name = "Sample Category",
-                type = CategoryType.Both,
-                parentCategoryId = null,
-                color = Color.BLUE,
-                icon = "category",
-                orderNum = 0.0,
-                state = CategoryState.Default,
-                sync = Sync(
-                    state = SyncState.Synced,
-                    lastUpdated = timeProviderFake.timeNow()
-                )
-            ),
-            time = TrnTime.Actual(actual = timeProviderFake.timeNow()),
-            title = "Sample Transaction",
-            description = null,
-            state = TrnState.Default,
-            purpose = TrnPurpose.Fee,
+            account = newAccount,
+            value = Value(100.0, "USD"),
+            category = category(),
             tags = listOf(newTag),
-            attachments = listOf(newAttachment),
-            metadata = TrnMetadata(
-                recurringRuleId = null,
-                loanId = null,
-                loanRecordId = null
-            ),
-            sync = Sync(
-                state = SyncState.Synced,
-                lastUpdated = timeProviderFake.timeNow()
-            )
+            attachments = listOf(newAttachment)
         )
 
         writeTrnsAct(WriteTrnsAct.Input.CreateNew(trn = newTransaction))
 
-        val createdTransaction = transactionDaoFake.transactions.firstOrNull { it.id == transactionId.toString() }
+        val createdTransaction =
+            transactionDaoFake.transactions.firstOrNull { it.id == transactionId.toString() }
 
         val createdTag = transactionDaoFake.tags.firstOrNull { it.tagId == tagId.toString() }
-        val createdAttachment = transactionDaoFake.attachments.firstOrNull { it.id == attachmentId.toString() }
+        val createdAttachment =
+            transactionDaoFake.attachments.firstOrNull { it.id == attachmentId.toString() }
 
         assertThat(createdTransaction).isNotNull()
         assertThat(createdTransaction?.type).isEqualTo(TransactionType.Income)
