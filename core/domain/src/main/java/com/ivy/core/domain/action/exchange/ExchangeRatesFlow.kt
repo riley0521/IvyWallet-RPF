@@ -2,10 +2,11 @@ package com.ivy.core.domain.action.exchange
 
 import com.ivy.core.domain.action.SharedFlowAction
 import com.ivy.core.domain.action.settings.basecurrency.BaseCurrencyFlow
+import com.ivy.core.domain.pure.util.DispatcherProvider
 import com.ivy.core.persistence.dao.exchange.ExchangeRateDao
 import com.ivy.core.persistence.dao.exchange.ExchangeRateOverrideDao
 import com.ivy.data.exchange.ExchangeRates
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -21,11 +22,13 @@ import javax.inject.Singleton
  * _Note: Initially emits empty base currency and rates. In most cases that won't happen
  * because this is a [SharedFlowAction] and it might be already initialized._
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
 class ExchangeRatesFlow @Inject constructor(
     private val baseCurrencyFlow: BaseCurrencyFlow,
     private val exchangeRateDao: ExchangeRateDao,
     private val exchangeRateOverrideDao: ExchangeRateOverrideDao,
+    private val dispatcherProvider: DispatcherProvider
 ) : SharedFlowAction<ExchangeRates>() {
     override fun initialValue(): ExchangeRates = ExchangeRates(
         baseCurrency = "",
@@ -55,5 +58,5 @@ class ExchangeRatesFlow @Inject constructor(
                     rates = ratesMap,
                 )
             }
-        }.flowOn(Dispatchers.Default)
+        }.flowOn(dispatcherProvider.default)
 }
