@@ -1,14 +1,13 @@
 package com.ivy.home
 
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.printToLog
 import com.ivy.common.androidtest.IvyAndroidTest
 import com.ivy.common.androidtest.test_data.saveAccountWithTransactions
 import com.ivy.common.androidtest.test_data.transactionWithTime
+import com.ivy.data.transaction.TransactionType
 import com.ivy.navigation.Navigator
-import com.ivy.navigation.destinations.main.Home
 import com.ivy.wallet.ui.RootActivity
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.runBlocking
@@ -51,10 +50,38 @@ class HomeScreenTest : IvyAndroidTest() {
             .selectMonth("August")
             .assertDateIsDisplayed(1, "August")
             .assertDateIsDisplayed(31, "August")
+            .apply {
+                composeRule.onRoot().printToLog("Root")
+            }
             .clickDone()
             .clickUpcoming()
             .assertTransactionDoesNotExist("Transaction1")
             .assertTransactionIsDisplayed("Transaction2")
             .assertTransactionIsDisplayed("Transaction3")
+    }
+
+    @Test
+    fun testGetOverdueTransaction_turnsIntoNormalTransaction() = runBlocking<Unit> {
+        val date = LocalDate.of(2023, 7, 9)
+        setDate(date)
+
+        val overdueIncomeTransaction = transactionWithTime(Instant.parse("2023-07-08T09:00:00Z")).copy(
+            title = "TransactionOverdue",
+            type = TransactionType.Income
+        )
+
+        db.saveAccountWithTransactions(
+            transactions = listOf(overdueIncomeTransaction)
+        )
+
+        HomeScreenRobot(composeRule)
+            .navigateTo(navigator)
+            .clickOverdue()
+            .clickGet()
+            .assertTransactionIsDisplayed("TransactionOverdue")
+            .assertBalanceIsDisplayed(
+                overdueIncomeTransaction.amount,
+                overdueIncomeTransaction.currency
+            )
     }
 }
